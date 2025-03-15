@@ -1,6 +1,8 @@
 from activation_functions import Activations
 from loss_functions import Losses
 from weight_initializers import Initializers
+from layer import Layer
+import numpy as np
 
 ACTIVATIONS = {
     'linear': (Activations.linear, Activations.linear_derivative),
@@ -23,3 +25,23 @@ INITIALIZERS = {
     'xavier': Initializers.xavier_init,
     'he': Initializers.he_init
 }
+
+class LinearLayer(Layer):
+
+    def __init__(self, in_features, out_features, bias=True, 
+                 init_method='xavier', **init_kwargs):
+        super().__init__()
+        
+        initializer = INITIALIZERS.get(init_method, INITIALIZERS['xavier'])
+        
+        self.params['W'] = initializer((in_features, out_features), **init_kwargs)
+        self.grads['W'] = np.zeros((in_features, out_features))
+        
+        if bias:
+            self.params['b'] = np.zeros(out_features)
+            self.grads['b'] = np.zeros(out_features)
+        
+        self.in_features = in_features
+        self.out_features = out_features
+        self.use_bias = bias
+        self.input = None
