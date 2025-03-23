@@ -3,19 +3,16 @@ import numpy as np
 class Initializers:
     @staticmethod
     def zero_init(shape):
-        """Zero initialization - all weights set to 0"""
         return np.zeros(shape)
 
     @staticmethod
     def uniform_init(shape, low=-0.1, high=0.1, seed=None):
-        """Uniform distribution initialization"""
         if seed is not None:
             np.random.seed(seed)
         return np.random.uniform(low, high, shape)
 
     @staticmethod
     def normal_init(shape, mean=0.0, var=0.1, seed=None):
-        """Normal distribution initialization"""
         if seed is not None:
             np.random.seed(seed)
         return np.random.normal(mean, np.sqrt(var), shape)

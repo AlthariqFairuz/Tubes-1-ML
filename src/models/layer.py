@@ -1,5 +1,5 @@
 class Layer:
-    """Abstract class for a layer."""
+    """Abstract class for a layer"""
     def __init__(self):
         self.params = {}
         self.grads = {}

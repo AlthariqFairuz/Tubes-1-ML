@@ -41,5 +41,6 @@ class Activations:
         return exp_x / np.sum(exp_x, axis=axis, keepdims=True)
     
     @staticmethod
+    #TODO
     def softmax_derivative(x, axis=-1):
         pass

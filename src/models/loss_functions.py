@@ -27,5 +27,6 @@ class Losses:
         return -np.sum(y_true * np.log(y_pred)) / y_pred.shape[0]
     
     @staticmethod
+    #TODO
     def categorical_cross_entropy_derivative(y_pred, y_true):
         pass
