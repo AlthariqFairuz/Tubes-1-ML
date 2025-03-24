@@ -43,4 +43,5 @@ class Activations:
     @staticmethod
     #TODO
     def softmax_derivative(x, axis=-1):
-        pass
+        # tentative buat sederhanain doang, must be combined with categorical cross entropy
+        return x

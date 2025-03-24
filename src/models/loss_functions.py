@@ -29,4 +29,5 @@ class Losses:
     @staticmethod
     #TODO
     def categorical_cross_entropy_derivative(y_pred, y_true):
-        pass
+       # tentative buat sederhanain doang, must be combined with softmax
+       return (y_pred - y_true) / y_pred.shape[0]

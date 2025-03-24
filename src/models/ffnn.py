@@ -1,7 +1,7 @@
-from activation_functions import Activations
-from loss_functions import Losses
-from weight_initializers import Initializers
-from layer import Layer
+from .activation_functions import Activations
+from .loss_functions import Losses
+from .weight_initializers import Initializers
+from .layer import Layer
 import numpy as np
 
 ACTIVATIONS = {
