@@ -1,3 +1,6 @@
+import pickle
+
+from matplotlib import pyplot as plt
 from .activation_functions import Activations
 from .loss_functions import Losses
 from .weight_initializers import Initializers
@@ -308,3 +311,144 @@ class FFNN:
     def predict(self, x):
         predictions, _ = self.forward(x)
         return predictions
+    
+    
+    def save(self, filepath):
+        # Save  ke file
+        data = {
+            'layer_sizes': self.layer_sizes,
+            'params': {}
+        }
+        
+        # Save all layer param
+        for i, layer in enumerate(self.layers):
+            if hasattr(layer, 'params'):
+                for param_name, param in layer.params.items():
+                    data['params'][f"layer{i}_{param_name}"] = param
+        
+        with open(filepath, 'wb') as f:
+            pickle.dump(data, f)
+        
+    def load(self, filepath):
+        # load dari filepath
+        with open(filepath, 'rb') as f:
+            model_data = pickle.load(f)
+        
+        # Verif
+        if model_data['layer_sizes'] != self.layer_sizes:
+            raise ValueError("Model architecture does not match saved model")
+        
+        # Load
+        for i, layer in enumerate(self.layers):
+            if hasattr(layer, 'params'):
+                for param_name in layer.params:
+                    param_key = f"layer{i}_{param_name}"
+                    if param_key in model_data['params']:
+                        layer.params[param_name] = model_data['params'][param_key]
+
+    def plot_weight_distribution(self, layers=None):
+        if layers is None:
+            layers = range(len(self.layers))
+        
+        # Cari jumlah layer
+        param_layers = [i for i, layer in enumerate(self.layers) if hasattr(layer, 'params')]
+        
+        plot_layers = [i for i in layers if i in param_layers]
+        
+        if not plot_layers:
+            print("No layers with parameters to plot")
+            return
+        
+        fig, axes = plt.subplots(len(plot_layers), 1, figsize=(10, 3*len(plot_layers)))
+        if len(plot_layers) == 1:
+            axes = [axes]
+        
+        for i, layer_idx in enumerate(plot_layers):
+            layer = self.layers[layer_idx]
+            
+            for name, param in layer.params.items():
+                # Pemerataan bobot
+                weights = param.flatten()
+                axes[i].hist(weights, bins=50, alpha=0.5, label=name)
+            
+            axes[i].set_title(f"Distribusi bobot Layer {layer_idx}")
+            axes[i].set_xlabel("Weight")
+            axes[i].set_ylabel("Frequency")
+            axes[i].legend()
+        
+        plt.tight_layout()
+        plt.show()
+
+    def plot_gradient_distribution(self, layers=None):
+        if layers is None:
+            layers = range(len(self.layers))
+        
+        #  Cari jumlah layer
+        param_layers = [i for i, layer in enumerate(self.layers) if hasattr(layer, 'grads')]
+        
+        plot_layers = [i for i in layers if i in param_layers]
+        
+        if not plot_layers:
+            print("No layers with parameters to plot")
+            return
+        
+        fig, axes = plt.subplots(len(plot_layers), 1, figsize=(10, 3*len(plot_layers)))
+        if len(plot_layers) == 1:
+            axes = [axes]
+        
+        for i, layer_idx in enumerate(plot_layers):
+            layer = self.layers[layer_idx]
+            
+            for name, grad in layer.grads.items():
+                # Pemerataan gradien
+                grads = grad.flatten()
+                axes[i].hist(grads, bins=50, alpha=0.5, label=name)
+            
+            axes[i].set_title(f"Distribusi Gradien Layer {layer_idx} ")
+            axes[i].set_xlabel("Gradien")
+            axes[i].set_ylabel("Frequency")
+            axes[i].legend()
+        
+        plt.tight_layout()
+        plt.show()
+
+    def print_model(self):
+        # Display struktur FFNN nya
+        print("FFNN")
+        print(f"Layer sizes: {self.layer_sizes}")
+
+        # Iterasi tiap layer
+        for i, layer in enumerate(self.layers):
+            if isinstance(layer, LinearLayer):
+                print(f"\nLayer {i} (Linear):")
+                print(f"  Input size: {layer.in_features}")
+                print(f"  Output size: {layer.out_features}")
+                
+                # Ingfo bobot
+                W = layer.params['W']
+                print(f"  Weights shape: {W.shape}")
+                print(f"  Weights range: [{W.min():.4f}, {W.max():.4f}]")
+                print(f"  Weights mean: {W.mean():.4f}")
+                print(f"  Weights std: {W.std():.4f}")
+                
+                # Ingfo gradien
+                if np.any(layer.grads['W']):
+                    print(f"  Gradient range: [{layer.grads['W'].min():.4f}, {layer.grads['W'].max():.4f}]")
+                    print(f"  Gradient mean: {layer.grads['W'].mean():.4f}")
+                    print(f"  Gradient std: {layer.grads['W'].std():.4f}")
+                
+                # Ingfo bias
+                if layer.use_bias:
+                    b = layer.params['b']
+                    print(f"  Bias shape: {b.shape}")
+                    print(f"  Bias range: [{b.min():.4f}, {b.max():.4f}]")
+            
+            elif isinstance(layer, ActivationLayer):
+                print(f"\nLayer {i} (Activation):")
+                print(f"  Type: {layer.activation_fn.__name__}")
+            
+            elif isinstance(layer, RMSNorm):
+                print(f"\nLayer {i} (RMSNorm):")
+                scale = layer.params['scale']
+                print(f"  Scale shape: {scale.shape}")
+                print(f"  Scale range: [{scale.min():.4f}, {scale.max():.4f}]")
