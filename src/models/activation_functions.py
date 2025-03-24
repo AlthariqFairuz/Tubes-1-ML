@@ -44,4 +44,4 @@ class Activations:
     #TODO
     def softmax_derivative(x, axis=-1):
         # tentative buat sederhanain doang, must be combined with categorical cross entropy
-        return x
+        return x * (1 - x)

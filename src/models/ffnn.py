@@ -70,17 +70,6 @@ class LinearLayer(Layer):
 class Regularization:
     @staticmethod
     def l1_regularization(model, lambda_val=0.01):
-        """
-        L1 regularization (Lasso)
-        Adds λ * |w| to the loss
-        
-        Args:
-            model: FFNN model
-            lambda_val: Regularization strength
-            
-        Returns:
-            Regularization loss and updates gradients in-place
-        """
         reg_loss = 0
         
         for layer in model.layers:
@@ -95,17 +84,6 @@ class Regularization:
 
     @staticmethod
     def l2_regularization(model, lambda_val=0.01):
-        """
-        L2 regularization (Ridge)
-        Adds λ * ||w||² / 2 to the loss
-        
-        Args:
-            model: FFNN model
-            lambda_val: Regularization strength
-            
-        Returns:
-            Regularization loss and updates gradients in-place
-        """
         reg_loss = 0
         
         for layer in model.layers:
@@ -144,10 +122,6 @@ class ActivationLayer(Layer):
             return grad_output * self.activation_derivative(self.input)
         
 class RMSNorm(Layer):
-    """
-    Root Mean Square Layer Normalization
-    Simplified version of LayerNorm without mean-centering
-    """
     def __init__(self, dim, eps=1e-8):
         super().__init__()
         self.eps = eps
