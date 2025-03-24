@@ -227,4 +227,110 @@ class FFNN:
                 self.layers.append(ActivationLayer(act_fn))
             
             self.loss_fn, self.loss_derivative = LOSSES[loss] if isinstance(loss, str) else loss
+
+    def forward(self, x):
+        # pass through each layer
+        activations = [x]
         
+        for layer in self.layers:
+            x = layer.forward(x)
+            activations.append(x)
+        
+        return x, activations
+    
+    def backward(self, y_pred, y_true, activations):
+        grad = self.loss_derivative(y_pred, y_true)
+        
+        # backpropagate through layers in reverse order
+        for i in range(len(self.layers) - 1, -1, -1):
+            grad = self.layers[i].backward(grad)
+    
+    def get_params(self):
+        # get all trainable parameters
+        params = {}
+        for i, layer in enumerate(self.layers):
+            if hasattr(layer, 'get_params'):
+                for name, param in layer.get_params().items():
+                    params[f"layer{i}_{name}"] = param
+        return params
+    
+    def get_gradients(self):
+        # get all parameter gradients
+        grads = {}
+        for i, layer in enumerate(self.layers):
+            if hasattr(layer, 'get_grads'):
+                for name, grad in layer.get_grads().items():
+                    grads[f"layer{i}_{name}"] = grad
+        return grads
+
+    def train_step(self, x_batch, y_batch, learning_rate):
+        # forward pass
+        y_pred, activations = self.forward(x_batch)
+        
+        # compute loss
+        loss = self.loss_fn(y_pred, y_batch)
+        
+        # backward pass
+        self.backward(y_pred, y_batch, activations)
+        
+        # bpdate weights using gradient descent
+        for layer in self.layers:
+            if isinstance(layer, (LinearLayer, RMSNorm)):
+                for param_name in layer.params:
+                    layer.params[param_name] -= learning_rate * layer.grads[param_name]
+                    # Reset gradients
+                    layer.grads[param_name] = np.zeros_like(layer.grads[param_name])
+        
+        return loss
+    
+    def train(self, x_train, y_train, batch_size=32, learning_rate=0.01, 
+              epochs=100, x_val=None, y_val=None, verbose=1):
+        n_samples = len(x_train)
+        history = {'train_loss': [], 'val_loss': []}
+        
+        n_batches = (n_samples + batch_size - 1) // batch_size
+        
+        for epoch in range(epochs):
+            total_loss = 0
+            
+            # shuffle
+            indices = np.random.permutation(n_samples)
+            x_shuffled = x_train[indices]
+            y_shuffled = y_train[indices]
+            
+            # mini-batch training
+            for batch in range(n_batches):
+                start_idx = batch * batch_size
+                end_idx = min((batch + 1) * batch_size, n_samples)
+                
+                x_batch = x_shuffled[start_idx:end_idx]
+                y_batch = y_shuffled[start_idx:end_idx]
+                
+                batch_loss = self.train_step(x_batch, y_batch, learning_rate)
+                total_loss += batch_loss * (end_idx - start_idx)
+                
+                if verbose > 1 and batch % max(1, n_batches // 10) == 0:
+                    print(f"Epoch {epoch+1}/{epochs}, Batch {batch+1}/{n_batches}, Loss: {batch_loss:.4f}")
+            
+            # average training loss
+            avg_train_loss = total_loss / n_samples
+            history['train_loss'].append(avg_train_loss)
+            
+            # validation loss if validation data is provided
+            val_loss = None
+            if x_val is not None and y_val is not None:
+                y_val_pred, _ = self.forward(x_val)
+                val_loss = self.loss_fn(y_val_pred, y_val)
+                history['val_loss'].append(val_loss)
+            
+            if verbose > 0:
+                if val_loss is not None:
+                    print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}")
+                else:
+                    print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_train_loss:.4f}")
+        
+        return history
+    
+    def predict(self, x):
+        predictions, _ = self.forward(x)
+        return predictions
