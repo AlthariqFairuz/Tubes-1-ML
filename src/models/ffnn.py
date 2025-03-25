@@ -412,6 +412,26 @@ class FFNN:
         plt.tight_layout()
         plt.show()
 
+    def plot_loss(self, history):
+        plt.figure(figsize=(10, 5))
+        
+        # plot training loss
+        plt.plot(history['train_loss'], label='Training Loss', marker='o')
+        
+        # plot validation loss if available
+        if 'val_loss' in history and history['val_loss']:
+            plt.plot(history['val_loss'], label='Validation Loss', marker='o')
+        
+        plt.title('Model Loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+        
+        return history
+
     def print_model(self):
         # Display struktur FFNN nya
         print("FFNN")
