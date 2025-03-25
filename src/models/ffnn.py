@@ -431,44 +431,275 @@ class FFNN:
         plt.show()
         
         return history
-
-    def print_model(self):
-        # Display struktur FFNN nya
-        print("FFNN")
-        print(f"Layer sizes: {self.layer_sizes}")
-
-        # Iterasi tiap layer
-        for i, layer in enumerate(self.layers):
-            if isinstance(layer, LinearLayer):
-                print(f"\nLayer {i} (Linear):")
-                print(f"  Input size: {layer.in_features}")
-                print(f"  Output size: {layer.out_features}")
-                
-                # Ingfo bobot
-                W = layer.params['W']
-                print(f"  Weights shape: {W.shape}")
-                print(f"  Weights range: [{W.min():.4f}, {W.max():.4f}]")
-                print(f"  Weights mean: {W.mean():.4f}")
-                print(f"  Weights std: {W.std():.4f}")
-                
-                # Ingfo gradien
-                if np.any(layer.grads['W']):
-                    print(f"  Gradient range: [{layer.grads['W'].min():.4f}, {layer.grads['W'].max():.4f}]")
-                    print(f"  Gradient mean: {layer.grads['W'].mean():.4f}")
-                    print(f"  Gradient std: {layer.grads['W'].std():.4f}")
-                
-                # Ingfo bias
-                if layer.use_bias:
-                    b = layer.params['b']
-                    print(f"  Bias shape: {b.shape}")
-                    print(f"  Bias range: [{b.min():.4f}, {b.max():.4f}]")
+    
+    def visualize_model(self):
+        """
+        Visualisasi FFNN
+        """
+        import plotly.graph_objects as go
+        import numpy as np
+        from IPython.display import display, HTML
+        
+        # Jarak antar layer, bisa diubah kalo mau
+        GAP_MULTIPLIER = 50  # makin gede angkanya, makin jauh jaraknya
+        
+        # Nama-nama layer
+        layer_names = ["Input Layer"]
+        for i in range(1, len(self.layer_sizes) - 1):
+            layer_names.append(f"Hidden Layer {i}")
+        layer_names.append("Output Layer")
+        
+        # Inisialisasi data nodes dan edges
+        nodes = []
+        edges = []
+        node_id_map = {}  # Buat nyimpen mapping indeks node
+        node_idx = 0
+        
+        # Nyari ukuran layer terbesar buat ngatur skala
+        max_layer_size = max(self.layer_sizes)
+        
+        # Bikin node buat tiap neuron di semua layer
+        for layer_idx, (layer_size, layer_name) in enumerate(zip(self.layer_sizes, layer_names)):
+            # Posisi horizontal pake GAP_MULTIPLIER
+            x = layer_idx * GAP_MULTIPLIER
             
-            elif isinstance(layer, ActivationLayer):
-                print(f"\nLayer {i} (Activation):")
-                print(f"  Type: {layer.activation_fn.__name__}")
+            for neuron_idx in range(layer_size):
+                # Ngatur jarak vertikal antar neuron
+                y_spacing = 2.5  # jarak antar node
+                if layer_size == 1:
+                    y = 0
+                else:
+                    y = (neuron_idx - (layer_size - 1) / 2) * y_spacing
+                
+                # Bikin label buat tiap node
+                if layer_idx == 0:  # kalo layer input
+                    label = f"Variable #{neuron_idx+1}"
+                elif layer_idx == len(self.layer_sizes) - 1:  # kalo layer output
+                    label = "Output"
+                else:  # kalo hidden layer
+                    label = f"H{layer_idx}_{neuron_idx+1}"
+                
+                # Ngasih warna beda buat tiap jenis layer
+                if layer_idx == 0:
+                    color = "lightblue"
+                elif layer_idx == len(self.layer_sizes) - 1:
+                    color = "lightgreen"
+                else:
+                    color = "lightyellow"
+                
+                nodes.append({
+                    "id": node_idx,
+                    "label": label,
+                    "x": x,
+                    "y": y,
+                    "size": 15,
+                    "color": color,
+                    "layer": layer_name,
+                    "neuron_idx": neuron_idx
+                })
+                
+                node_id_map[(layer_idx, neuron_idx)] = node_idx
+                node_idx += 1
+        
+        # Bikin edges dengan info bobot dan gradien
+        for layer_idx in range(len(self.layer_sizes) - 1):
+            from_size = self.layer_sizes[layer_idx]
+            to_size = self.layer_sizes[layer_idx + 1]
             
-            elif isinstance(layer, RMSNorm):
-                print(f"\nLayer {i} (RMSNorm):")
-                scale = layer.params['scale']
-                print(f"  Scale shape: {scale.shape}")
-                print(f"  Scale range: [{scale.min():.4f}, {scale.max():.4f}]")
+            # Nyari LinearLayer yang sesuai
+            linear_layer = None
+            for l in self.layers:
+                if isinstance(l, LinearLayer) and l.in_features == from_size and l.out_features == to_size:
+                    linear_layer = l
+                    break
+            
+            if linear_layer is None:
+                continue
+            
+            # Ambil bobot dan gradien
+            weights = linear_layer.params['W']
+            gradients = linear_layer.grads['W'] if 'W' in linear_layer.grads else np.zeros_like(weights)
+            
+            # Cari activation function
+            activation = "None"
+            for l_idx, l in enumerate(self.layers):
+                if l is linear_layer and l_idx + 1 < len(self.layers):
+                    next_layer = self.layers[l_idx + 1]
+                    if hasattr(next_layer, 'activation_fn'):
+                        activation = next_layer.activation_fn.__name__
+                    break
+            
+            for i in range(from_size):
+                for j in range(to_size):
+                    source = node_id_map[(layer_idx, i)]
+                    target = node_id_map[(layer_idx + 1, j)]
+                    weight = float(weights[i, j])
+                    gradient = float(gradients[i, j])
+                    
+                    # Ngatur ketebalan garis berdasarkan bobot
+                    width = min(max(0.5, abs(weight) * 3), 5)
+                    
+                    # Kasih warna beda berdasarkan tanda bobot
+                    color = 'rgba(123, 165, 209, 0.8)' if weight >= 0 else 'rgba(217, 123, 106, 0.8)'
+                    
+                    edges.append({
+                        "source": source,
+                        "target": target,
+                        "weight": weight,
+                        "gradient": gradient,
+                        "width": width,
+                        "color": color,
+                        "source_layer": layer_names[layer_idx],
+                        "target_layer": layer_names[layer_idx + 1],
+                        "source_neuron": nodes[source]["label"],
+                        "target_neuron": nodes[target]["label"],
+                        "activation": activation
+                    })
+        
+        # Bikin trace buat node
+        node_x = [node["x"] for node in nodes]
+        node_y = [node["y"] for node in nodes]
+        node_text = [f"{node['label']}<br>Layer: {node['layer']}" for node in nodes]
+        node_colors = [node["color"] for node in nodes]
+        
+        node_trace = go.Scatter(
+            x=node_x, 
+            y=node_y,
+            mode='markers',
+            hoverinfo='text',
+            text=node_text,
+            marker=dict(
+                color=node_colors,
+                size=25,
+                line=dict(width=2, color='black')
+            )
+        )
+        
+        # Bikin trace buat tiap edge
+        edge_traces = []
+        
+        for edge in edges:
+            source_node = nodes[edge["source"]]
+            target_node = nodes[edge["target"]]
+            
+            # Ambil titik awal dan akhir
+            x0, y0 = source_node["x"], source_node["y"]
+            x1, y1 = target_node["x"], target_node["y"]
+            
+            # Bikin banyak titik di sepanjang garis biar gampang di-hover
+            # Pake 20 titik aja harusnya cukup
+            num_points = 20
+            edge_x = []
+            edge_y = []
+            for i in range(num_points):
+                ratio = i / (num_points - 1)
+                edge_x.append(x0 * (1 - ratio) + x1 * ratio)
+                edge_y.append(y0 * (1 - ratio) + y1 * ratio)
+            
+            # Format nilai bobot dan gradien
+            weight_display = f"{edge['weight']:.4f}"
+            gradient_display = f"{edge['gradient']:.6f}"
+            
+            # Bikin text buat hover
+            hover_text = (
+                f"<b>Edge:</b> {edge['source_neuron']} → {edge['target_neuron']}<br>"
+                f"<b>Weight:</b> {weight_display}<br>"
+                f"<b>Gradient:</b> {gradient_display}<br>"
+                f"<b>Aktivasi:</b> {edge['activation']}"
+            )
+            
+            # Pake hovertemplate biar tampilannya lebih bagus
+            edge_trace = go.Scatter(
+                x=edge_x, 
+                y=edge_y,
+                line=dict(width=edge["width"], color=edge["color"]),
+                mode='lines',
+                hoverinfo='text',
+                hovertemplate=hover_text + "<extra></extra>",
+                hoverlabel=dict(
+                    bgcolor="white",
+                    font_size=12,
+                    font_family="Arial",
+                    bordercolor="black"
+                ),
+                opacity=0.7
+            )
+            
+            edge_traces.append(edge_trace)
+        
+        # Gabungin jadi satu figure
+        fig = go.Figure(
+            data=edge_traces + [node_trace],
+            layout=go.Layout(
+                title='Visualisasi Arsitektur Neural Network dengan Bobot dan Gradien',
+                showlegend=False,
+                hovermode='closest',
+                hoverdistance=100,  # Naikin sensitivitas hover
+                margin=dict(b=20, l=5, r=5, t=40),
+                xaxis=dict(
+                    showgrid=False, 
+                    zeroline=False, 
+                    showticklabels=False,
+                    range=[-0.5, (len(self.layer_sizes) - 1) * GAP_MULTIPLIER + 0.5]
+                ),
+                yaxis=dict(
+                    showgrid=False, 
+                    zeroline=False, 
+                    showticklabels=False,
+                    scaleanchor="x", 
+                    scaleratio=1
+                ),
+                width=1200,
+                height=800,
+                plot_bgcolor='rgba(240, 240, 240, 0.2)'
+            )
+        )
+        
+        # Tambah label buat tiap layer
+        for i, name in enumerate(layer_names):
+            fig.add_annotation(
+                x=i * GAP_MULTIPLIER,
+                y=(max_layer_size - 1) * 2.5 / 2 + 3,
+                text=name,
+                showarrow=False,
+                font=dict(size=16, color="black")
+            )
+        
+        # Nambahin keterangan warna
+        fig.add_annotation(
+            x=0.02,
+            y=0.02,
+            xref="paper",
+            yref="paper",
+            text="Garis biru: Bobot positif | Garis merah: Bobot negatif<br>Ketebalan garis menunjukkan besarnya weight",
+            showarrow=False,
+            font=dict(size=12),
+            bgcolor="rgba(255, 255, 255, 0.7)",
+            bordercolor="gray",
+            borderwidth=1,
+            borderpad=4,
+            align="left"
+        )
+        
+
+        # Tampilin visualisasi
+        fig.show(config={
+            'displayModeBar': True,
+            'scrollZoom': True,
+            'modeBarButtonsToAdd': ['drawline', 'drawopenpath', 'eraseshape'],
+            'toImageButtonOptions': {
+                'format': 'png',
+                'filename': 'visualisasi_neural_network',
+                'height': 800,
+                'width': 1200,
+                'scale': 2
+            }
+        })
+        
+
+        # # Simpan visualisasi ke file HTML
+        # html_file = "visualisasi_neural_network.html"
+        # fig.write_html(html_file)
+        # print(f"Visualisasi disimpan ke file {html_file} - buka file ini di browser untuk fitur interaktif lengkap")
+
+
