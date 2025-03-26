@@ -27,7 +27,15 @@ class Losses:
         return -np.sum(y_true * np.log(y_pred)) / y_pred.shape[0]
     
     @staticmethod
-    #TODO
     def categorical_cross_entropy_derivative(y_pred, y_true):
-       # tentative buat sederhanain doang, must be combined with softmax
-       return (y_pred - y_true) / y_pred.shape[0]
+        """
+        Args:
+        y_pred: predicted probabilities (output of softmax)
+        y_true: ground truth (one-hot encoded)
+        
+        Returns:
+            derivative: dL/dy_pred
+        """
+        eps = 1e-15
+        y_pred = np.clip(y_pred, eps, 1.0)  # avoid division by 0
+        return (y_pred - y_true) / y_pred.shape[0]
