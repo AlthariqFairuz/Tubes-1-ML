@@ -43,5 +43,20 @@ class Activations:
     @staticmethod
     #TODO
     def softmax_derivative(x, axis=-1):
-        # tentative buat sederhanain doang, must be combined with categorical cross entropy
-        return x * (1 - x)
+        """
+        In neural networks, when softmax is the final layer and is used with 
+        categorical cross-entropy loss, the gradient simplifies to (output - target),
+        which is handled in the categorical_cross_entropy_derivative function.
+        
+        This function is not directly used in backpropagation when softmax is combined
+        with categorical cross-entropy, as the ActivationLayer.backward method bypasses it.
+        
+        Args:
+            x: Input to the softmax function
+            axis: Axis along which softmax is computed
+            
+        Returns:
+            Jacobian-vector product function for backpropagation
+        """
+        s = Activations.softmax(x, axis=axis)
+        return s
