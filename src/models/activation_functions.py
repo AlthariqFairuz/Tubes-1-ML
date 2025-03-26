@@ -60,3 +60,19 @@ class Activations:
         """
         s = Activations.softmax(x, axis=axis)
         return s
+    
+    @staticmethod
+    def leaky_relu(x):
+        return np.where(x > 0, x, x * 0.01)
+    
+    @staticmethod
+    def leaky_relu_derivative(x):
+        return np.where(x > 0, 1, 0.01)
+    
+    @staticmethod
+    def exponential_relu(x):
+        return np.where(x > 0, x, np.exp(x) - 1)
+    
+    @staticmethod
+    def exponential_relu_derivative(x):
+        return np.where(x > 0, 1, np.exp(x))

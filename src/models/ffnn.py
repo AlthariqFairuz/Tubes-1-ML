@@ -14,7 +14,9 @@ ACTIVATIONS = {
     'relu': (Activations.relu, Activations.relu_derivative),
     'sigmoid': (Activations.sigmoid, Activations.sigmoid_derivative),
     'tanh': (Activations.tanh, Activations.tanh_derivative),
-    'softmax': (Activations.softmax, Activations.softmax_derivative)
+    'softmax': (Activations.softmax, Activations.softmax_derivative),
+    'leaky_relu': (Activations.leaky_relu, Activations.leaky_relu_derivative),
+    'exponential_relu': (Activations.exponential_relu, Activations.exponential_relu_derivative)
 }
 
 LOSSES = {
@@ -260,17 +262,6 @@ class FFNN:
         
         # backward pass
         self.backward(y_pred, y_batch, activations)
-<<<<<<< HEAD
-        
-        # tambahkan regularisasi
-        reg_loss = 0
-        if reg_type == 'l1':
-            reg_loss = Regularization.l1_regularization(self, lambda_val)
-        elif reg_type == 'l2':
-            reg_loss = Regularization.l2_regularization(self, lambda_val)
-        
-        # update bobot dengan gradient descent
-=======
 
         reg_loss = 0
         if reg_type == 'l1':
@@ -281,7 +272,6 @@ class FFNN:
             loss += reg_loss
 
         # bpdate weights using gradient descent
->>>>>>> 1ff398c773b890a668d4ce5660eb4971a4478b6e
         for layer in self.layers:
             if isinstance(layer, (LinearLayer, RMSNorm)):
                 for param_name in layer.params:
@@ -289,18 +279,10 @@ class FFNN:
                     # Reset gradien
                     layer.grads[param_name] = np.zeros_like(layer.grads[param_name])
         
-        # total loss (training + regularisasi)
-        total_loss = loss + reg_loss
-        
-        return total_loss
+        return loss
     
     def train(self, x_train, y_train, batch_size=32, learning_rate=0.01, 
-<<<<<<< HEAD
-            epochs=100, x_val=None, y_val=None, verbose=1, 
-            reg_type=None, lambda_val=0.01):
-=======
               epochs=10, x_val=None, y_val=None, verbose=1, reg_type=None, lambda_val=0.01):
->>>>>>> 1ff398c773b890a668d4ce5660eb4971a4478b6e
         n_samples = len(x_train)
         history = {'train_loss': [], 'val_loss': []}
         
@@ -322,13 +304,7 @@ class FFNN:
                 x_batch = x_shuffled[start_idx:end_idx]
                 y_batch = y_shuffled[start_idx:end_idx]
                 
-<<<<<<< HEAD
-                # gunakan reg_type yang sesuai
-                batch_loss = self.train_step(x_batch, y_batch, learning_rate, 
-                                            reg_type, lambda_val)
-=======
                 batch_loss = self.train_step(x_batch, y_batch, learning_rate, reg_type, lambda_val)
->>>>>>> 1ff398c773b890a668d4ce5660eb4971a4478b6e
                 total_loss += batch_loss * (end_idx - start_idx)
                 
                 
