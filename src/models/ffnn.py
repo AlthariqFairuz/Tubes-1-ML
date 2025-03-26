@@ -252,6 +252,12 @@ class FFNN:
                 for name, grad in layer.get_grads().items():
                     grads[f"layer{i}_{name}"] = grad
         return grads
+    
+    def save_last_gradients(self):
+        for layer in self.layers:
+            if hasattr(layer, 'grads'):
+                for param_name, grad in layer.grads.items():
+                    layer.last_gradients[param_name] = grad.copy()
 
     def train_step(self, x_batch, y_batch, learning_rate, reg_type=None, lambda_val=0.01):
         # forward pass
@@ -327,6 +333,22 @@ class FFNN:
                     print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}")
                 else:
                     print(f"Epoch {epoch+1}/{epochs}, Train Loss: {avg_train_loss:.4f}")
+
+            # Jika ini epoch terakhir, jalankan satu iterasi forward/backward untuk mendapatkan gradien tanpa update bobot, lalu simpan
+            if epoch == epochs - 1:
+                # Ambil batch terakhir atau seluruh data jika bisa muat di memori
+                final_batch_size = min(batch_size, n_samples)
+                x_final = x_train[:final_batch_size]
+                y_final = y_train[:final_batch_size]
+                
+                # Forward pass
+                y_pred, activations = self.forward(x_final)
+                
+                # Backward pass (ini menghitung gradien tanpa update bobot)
+                self.backward(y_pred, y_final, activations)
+                
+                # Simpan gradien
+                self.save_last_gradients()
         
         return history
     
