@@ -1,11 +1,13 @@
 import pickle
-
 from matplotlib import pyplot as plt
 from .activation_functions import Activations
 from .loss_functions import Losses
 from .weight_initializers import Initializers
 from .layer import Layer
 import numpy as np
+import plotly.graph_objects as go
+import numpy as np
+from IPython.display import display, HTML
 
 ACTIVATIONS = {
     'linear': (Activations.linear, Activations.linear_derivative),
@@ -33,9 +35,13 @@ class LinearLayer(Layer):
     def __init__(self, in_features, out_features, bias=True, 
                  init_method='xavier', **init_kwargs):
         super().__init__()
+        """
+        **init_kwargs: Additional arguments for weight initialization
+        """
         
         initializer = INITIALIZERS.get(init_method, INITIALIZERS['xavier'])
         
+        # initialize weights based from the initializer and weight gradient to zero based on the input and output shape
         self.params['W'] = initializer((in_features, out_features), **init_kwargs)
         self.grads['W'] = np.zeros((in_features, out_features))
         
@@ -121,7 +127,7 @@ class ActivationLayer(Layer):
             # Special case for softmax (combined with cross-entropy loss), when softmax is used with categorical cross-entropy, the gradient simplifies to (output - target)
             return grad_output
         else:
-            # Element-wise multiplication of gradient and activation derivative
+            # Element-wise multiplication of gradient before current layer and current activation layer derivative
             return grad_output * self.activation_derivative(self.input)
         
 class RMSNorm(Layer):
@@ -206,6 +212,11 @@ class FFNN:
             self.loss_fn, self.loss_derivative = LOSSES[loss] if isinstance(loss, str) else loss
 
     def forward(self, x):
+        """
+        Perform forward pass through the network
+        Returns:
+            Tuple of (output, list of activations)
+        """
         # pass through each layer
         activations = [x]
         
@@ -249,6 +260,7 @@ class FFNN:
         
         # backward pass
         self.backward(y_pred, y_batch, activations)
+<<<<<<< HEAD
         
         # tambahkan regularisasi
         reg_loss = 0
@@ -258,6 +270,18 @@ class FFNN:
             reg_loss = Regularization.l2_regularization(self, lambda_val)
         
         # update bobot dengan gradient descent
+=======
+
+        reg_loss = 0
+        if reg_type == 'l1':
+            reg_loss = Regularization.l1_regularization(self, lambda_val)
+            loss += reg_loss
+        elif reg_type == 'l2':
+            reg_loss = Regularization.l2_regularization(self, lambda_val)
+            loss += reg_loss
+
+        # bpdate weights using gradient descent
+>>>>>>> 1ff398c773b890a668d4ce5660eb4971a4478b6e
         for layer in self.layers:
             if isinstance(layer, (LinearLayer, RMSNorm)):
                 for param_name in layer.params:
@@ -271,8 +295,12 @@ class FFNN:
         return total_loss
     
     def train(self, x_train, y_train, batch_size=32, learning_rate=0.01, 
+<<<<<<< HEAD
             epochs=100, x_val=None, y_val=None, verbose=1, 
             reg_type=None, lambda_val=0.01):
+=======
+              epochs=10, x_val=None, y_val=None, verbose=1, reg_type=None, lambda_val=0.01):
+>>>>>>> 1ff398c773b890a668d4ce5660eb4971a4478b6e
         n_samples = len(x_train)
         history = {'train_loss': [], 'val_loss': []}
         
@@ -294,9 +322,13 @@ class FFNN:
                 x_batch = x_shuffled[start_idx:end_idx]
                 y_batch = y_shuffled[start_idx:end_idx]
                 
+<<<<<<< HEAD
                 # gunakan reg_type yang sesuai
                 batch_loss = self.train_step(x_batch, y_batch, learning_rate, 
                                             reg_type, lambda_val)
+=======
+                batch_loss = self.train_step(x_batch, y_batch, learning_rate, reg_type, lambda_val)
+>>>>>>> 1ff398c773b890a668d4ce5660eb4971a4478b6e
                 total_loss += batch_loss * (end_idx - start_idx)
                 
                 
@@ -450,9 +482,7 @@ class FFNN:
         """
         Visualisasi FFNN
         """
-        import plotly.graph_objects as go
-        import numpy as np
-        from IPython.display import display, HTML
+
         
         # Jarak antar layer, bisa diubah kalo mau
         GAP_MULTIPLIER = 50  # makin gede angkanya, makin jauh jaraknya
