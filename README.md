@@ -13,6 +13,8 @@ This project implements a Feedforward Neural Network (FFNN) from scratch for the
   - Sigmoid
   - Hyperbolic Tangent (tanh)
   - Softmax
+  - Leaky ReLU
+  - Exponential ReLU
 - **Loss Functions**:
   - Mean Squared Error (MSE)
   - Binary Cross-Entropy
