@@ -96,24 +96,13 @@ history = model.train(
     epochs=10,
     x_val=X_val,
     y_val=y_val,
-    verbose=1
+    verbose=1, 
+    reg_type='l1',
+    lambda_val=0.01
 )
 
 # Making predictions
 predictions = model.predict(X_test)
-```
-
-### Using Regularization
-
-```python
-from ffnn import FFNN, Regularization
-
-# Create model
-model = FFNN(...)
-
-# Training with L2 regularization
-history = model.train(...)
-reg_loss = Regularization.l2_regularization(model, lambda_val=0.01)
 ```
 
 ## Examples
