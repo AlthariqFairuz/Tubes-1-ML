@@ -390,67 +390,152 @@ class FFNN:
                     if param_key in model_data['params']:
                         layer.params[param_name] = model_data['params'][param_key]
 
-    def plot_weight_distribution(self, layers=None):
-        if layers is None:
-            layers = range(len(self.layers))
+    def plot_weight_distribution(self):
+        # Cari semua LinearLayer
+        linear_layers = []
+        for i, layer in enumerate(self.layers):
+            if isinstance(layer, LinearLayer):
+                linear_layers.append((i, layer))
         
-        # Cari jumlah layer
-        param_layers = [i for i, layer in enumerate(self.layers) if hasattr(layer, 'params')]
-        
-        plot_layers = [i for i in layers if i in param_layers]
-        
-        if not plot_layers:
-            print("No layers with parameters to plot")
+        if len(linear_layers) == 0:
+            print("Gak ada koneksi dengan bobot untuk diplot :(")
             return
         
-        fig, axes = plt.subplots(len(plot_layers), 1, figsize=(10, 3*len(plot_layers)))
-        if len(plot_layers) == 1:
-            axes = [axes]
+        # Bikin nama koneksi yang lebih deskriptif
+        nama_koneksi = []
+        idx_skrg = 0
         
-        for i, layer_idx in enumerate(plot_layers):
-            layer = self.layers[layer_idx]
+        for layer_idx, layer in linear_layers:
+            # Tentuin nama layer asal dan tujuan
+            if idx_skrg == 0:
+                nama_asal = "Input"
+            else:
+                nama_asal = f"H{idx_skrg}"
+                
+            if idx_skrg == len(linear_layers) - 1:
+                nama_tujuan = "Output"
+            else:
+                nama_tujuan = f"H{idx_skrg+1}"
             
-            for name, param in layer.params.items():
-                # Pemerataan bobot
-                weights = param.flatten()
-                axes[i].hist(weights, bins=50, alpha=0.5, label=name)
+            # Gabungin jadi nama koneksi
+            nama_koneksi.append(f"{nama_asal} → {nama_tujuan}")
+            idx_skrg += 1
+        
+        # Mulai bikin plot
+        fig, axes = plt.subplots(len(linear_layers), 1, figsize=(10, 3*len(linear_layers)))
+        if len(linear_layers) == 1:
+            axes = [axes]  # Buat handling khusus kalau cuma ada 1 plot
+        
+        # Warna2 yang akan dipake
+        warna_weight = 'cornflowerblue'  # biru buat weight
+        warna_bias = 'orange'  # orange buat bias
+        
+        # Iterate dan plot satu2
+        for i, ((idx_layer, layer), nama) in enumerate(zip(linear_layers, nama_koneksi)):
+            # Plot distribusi weight
+            if 'W' in layer.params:
+                bobot = layer.params['W'].flatten()
+                axes[i].hist(bobot, bins=50, alpha=0.7, label='Weights', color=warna_weight)
             
-            axes[i].set_title(f"Distribusi bobot Layer {layer_idx}")
+            # Plot distribusi bias kalau ada
+            if 'b' in layer.params:
+                bias = layer.params['b'].flatten()
+                axes[i].hist(bias, bins=20, alpha=0.7, label='Biases', color=warna_bias)
+            
+            # Tambahin judul dan label
+            axes[i].set_title(f"Koneksi: {nama}")
             axes[i].set_xlabel("Weight")
-            axes[i].set_ylabel("Frequency")
+            axes[i].set_ylabel("Frekuensi")
             axes[i].legend()
         
         plt.tight_layout()
         plt.show()
 
-    def plot_gradient_distribution(self, layers=None):
-        if layers is None:
-            layers = range(len(self.layers))
+    def plot_gradient_distribution(self):
+        # Cari semua LinearLayer yang punya last_gradients 
+        layers_dgn_gradien = []
+        for idx, layer in enumerate(self.layers):
+            if isinstance(layer, LinearLayer) and hasattr(layer, 'last_gradients') and layer.last_gradients:
+                layers_dgn_gradien.append((idx, layer))
         
-        #  Cari jumlah layer
-        param_layers = [i for i, layer in enumerate(self.layers) if hasattr(layer, 'grads')]
-        
-        plot_layers = [i for i in layers if i in param_layers]
-        
-        if not plot_layers:
-            print("No layers with parameters to plot")
+        if not layers_dgn_gradien:
+            print("Belum ada gradien tersimpan. Jalankan train() dulu ya!")
             return
         
-        fig, axes = plt.subplots(len(plot_layers), 1, figsize=(10, 3*len(plot_layers)))
-        if len(plot_layers) == 1:
+        # Bikin nama koneksi
+        daftar_nama = []
+        cur_idx = 0
+        
+        for _, layer in layers_dgn_gradien:
+            # Bikin nama asal
+            if cur_idx == 0:
+                asal = "Input"
+            else:
+                asal = f"H{cur_idx}"
+            
+            # Bikin nama tujuan    
+            if cur_idx == len(layers_dgn_gradien) - 1:
+                tujuan = "Output"
+            else:
+                tujuan = f"H{cur_idx+1}"
+            
+            daftar_nama.append(f"{asal} → {tujuan}")
+            cur_idx += 1
+        
+        # Plotting
+        fig, axes = plt.subplots(len(layers_dgn_gradien), 1, figsize=(10, 3*len(layers_dgn_gradien)))
+        if len(layers_dgn_gradien) == 1:
             axes = [axes]
         
-        for i, layer_idx in enumerate(plot_layers):
-            layer = self.layers[layer_idx]
+        # Iterate dan plot satu2
+        for i, ((idx_layer, layer), nama) in enumerate(zip(layers_dgn_gradien, daftar_nama)):
+            # Plot gradien weight
+            if 'W' in layer.last_gradients:
+                nilai_gradien = layer.last_gradients['W'].flatten()
+                
+                # Filter outlier
+                if len(nilai_gradien) > 50:
+                    # Cara filter outlier pake IQR
+                    q1, q3 = np.percentile(nilai_gradien, [2, 98]) 
+                    iqr = q3 - q1
+                    batas_bawah = q1 - 1.5 * iqr
+                    batas_atas = q3 + 1.5 * iqr
+                    
+                    nilai_gradien_filtered = nilai_gradien[
+                        (nilai_gradien >= batas_bawah) & 
+                        (nilai_gradien <= batas_atas)
+                    ]
+                    axes[i].hist(nilai_gradien_filtered, bins=50, alpha=0.7, 
+                                label='Gradien Weight', color='cornflowerblue')
+                else:
+                    axes[i].hist(nilai_gradien, bins=50, alpha=0.7, 
+                                label='Gradien Weight', color='cornflowerblue')
             
-            for name, grad in layer.grads.items():
-                # Pemerataan gradien
-                grads = grad.flatten()
-                axes[i].hist(grads, bins=50, alpha=0.5, label=name)
+            # Plot gradien bias juga kalau ada
+            if 'b' in layer.last_gradients:
+                b_grads = layer.last_gradients['b'].flatten()
+                
+                # Filter outlier juga
+                if len(b_grads) > 10:
+                    q1, q3 = np.percentile(b_grads, [2, 98])
+                    iqr = q3 - q1
+                    batas_bawah = q1 - 1.5 * iqr
+                    batas_atas = q3 + 1.5 * iqr
+                    
+                    b_grads_filtered = b_grads[
+                        (b_grads >= batas_bawah) & 
+                        (b_grads <= batas_atas)
+                    ]
+                    axes[i].hist(b_grads_filtered, bins=20, alpha=0.7, 
+                                label='Gradien Bias', color='orange')
+                else:
+                    axes[i].hist(b_grads, bins=20, alpha=0.7, 
+                                label='Gradien Bias', color='orange')
             
-            axes[i].set_title(f"Distribusi Gradien Layer {layer_idx} ")
-            axes[i].set_xlabel("Gradien")
-            axes[i].set_ylabel("Frequency")
+            # Set judul dan label axis
+            axes[i].set_title(f"Gradien untuk Koneksi: {nama}")
+            axes[i].set_xlabel("Nilai Gradien")
+            axes[i].set_ylabel("Frekuensi")
             axes[i].legend()
         
         plt.tight_layout()
