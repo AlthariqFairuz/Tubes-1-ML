@@ -240,7 +240,7 @@ class FFNN:
                     grads[f"layer{i}_{name}"] = grad
         return grads
 
-    def train_step(self, x_batch, y_batch, learning_rate):
+    def train_step(self, x_batch, y_batch, learning_rate, reg_type=None, lambda_val=0.01):
         # forward pass
         y_pred, activations = self.forward(x_batch)
         
@@ -250,18 +250,29 @@ class FFNN:
         # backward pass
         self.backward(y_pred, y_batch, activations)
         
-        # bpdate weights using gradient descent
+        # tambahkan regularisasi
+        reg_loss = 0
+        if reg_type == 'l1':
+            reg_loss = Regularization.l1_regularization(self, lambda_val)
+        elif reg_type == 'l2':
+            reg_loss = Regularization.l2_regularization(self, lambda_val)
+        
+        # update bobot dengan gradient descent
         for layer in self.layers:
             if isinstance(layer, (LinearLayer, RMSNorm)):
                 for param_name in layer.params:
                     layer.params[param_name] -= learning_rate * layer.grads[param_name]
-                    # Reset gradients
+                    # Reset gradien
                     layer.grads[param_name] = np.zeros_like(layer.grads[param_name])
         
-        return loss
+        # total loss (training + regularisasi)
+        total_loss = loss + reg_loss
+        
+        return total_loss
     
     def train(self, x_train, y_train, batch_size=32, learning_rate=0.01, 
-              epochs=100, x_val=None, y_val=None, verbose=1):
+            epochs=100, x_val=None, y_val=None, verbose=1, 
+            reg_type=None, lambda_val=0.01):
         n_samples = len(x_train)
         history = {'train_loss': [], 'val_loss': []}
         
@@ -283,8 +294,11 @@ class FFNN:
                 x_batch = x_shuffled[start_idx:end_idx]
                 y_batch = y_shuffled[start_idx:end_idx]
                 
-                batch_loss = self.train_step(x_batch, y_batch, learning_rate)
+                # gunakan reg_type yang sesuai
+                batch_loss = self.train_step(x_batch, y_batch, learning_rate, 
+                                            reg_type, lambda_val)
                 total_loss += batch_loss * (end_idx - start_idx)
+                
                 
                 if verbose > 1 and batch % max(1, n_batches // 10) == 0:
                     print(f"Epoch {epoch+1}/{epochs}, Batch {batch+1}/{n_batches}, Loss: {batch_loss:.4f}")
