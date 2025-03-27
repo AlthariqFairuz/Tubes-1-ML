@@ -253,11 +253,11 @@ class FFNN:
                     grads[f"layer{i}_{name}"] = grad
         return grads
     
-    def save_last_gradients(self):
-        for layer in self.layers:
-            if hasattr(layer, 'grads'):
-                for param_name, grad in layer.grads.items():
-                    layer.last_gradients[param_name] = grad.copy()
+    # def save_last_gradients(self):
+    #     for layer in self.layers:
+    #         if hasattr(layer, 'grads'):
+    #             for param_name, grad in layer.grads.items():
+    #                 layer.last_gradients[param_name] = grad.copy()
 
     def train_step(self, x_batch, y_batch, learning_rate, reg_type=None, lambda_val=0.01):
         # forward pass
@@ -347,8 +347,8 @@ class FFNN:
                 # Backward pass (ini menghitung gradien tanpa update bobot)
                 self.backward(y_pred, y_final, activations)
                 
-                # Simpan gradien
-                self.save_last_gradients()
+                # # Simpan gradien
+                # self.save_last_gradients()
         
         return history
     
@@ -429,7 +429,7 @@ class FFNN:
         # Cari semua LinearLayer yang punya last_gradients 
         layers_dgn_gradien = []
         for idx, layer in enumerate(self.layers):
-            if isinstance(layer, LinearLayer) and hasattr(layer, 'last_gradients') and layer.last_gradients:
+            if isinstance(layer, LinearLayer) and hasattr(layer, 'grads') and layer.grads:
                 layers_dgn_gradien.append((idx, layer))
         
         if not layers_dgn_gradien:
@@ -464,8 +464,8 @@ class FFNN:
         # Iterate dan plot satu2
         for i, ((idx_layer, layer), nama) in enumerate(zip(layers_dgn_gradien, daftar_nama)):
             # Plot gradien weight
-            if 'W' in layer.last_gradients:
-                nilai_gradien = layer.last_gradients['W'].flatten()
+            if 'W' in layer.grads:
+                nilai_gradien = layer.grads['W'].flatten()
                 
                 # Filter outlier
                 if len(nilai_gradien) > 50:
@@ -486,8 +486,8 @@ class FFNN:
                                 label='Gradien Weight', color='cornflowerblue')
             
             # Plot gradien bias juga kalau ada
-            if 'b' in layer.last_gradients:
-                b_grads = layer.last_gradients['b'].flatten()
+            if 'b' in layer.grads:
+                b_grads = layer.grads['b'].flatten()
                 
                 # Filter outlier juga
                 if len(b_grads) > 10:

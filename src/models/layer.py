@@ -3,7 +3,7 @@ class Layer:
     def __init__(self):
         self.params = {}
         self.grads = {}
-        self.last_gradients = {} 
+        # self.last_gradients = {} 
     
     def forward(self, x):
         raise NotImplementedError
@@ -17,5 +17,5 @@ class Layer:
     def get_grads(self):
         return self.grads
     
-    def get_last_gradients(self):
-        return self.last_gradients
+    # def get_last_gradients(self):
+    #     return self.last_gradients
