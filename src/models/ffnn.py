@@ -358,37 +358,11 @@ class FFNN:
     
     
     def save(self, filepath):
-        # Save  ke file
-        data = {
-            'layer_sizes': self.layer_sizes,
-            'params': {}
-        }
-        
-        # Save all layer param
-        for i, layer in enumerate(self.layers):
-            if hasattr(layer, 'params'):
-                for param_name, param in layer.params.items():
-                    data['params'][f"layer{i}_{param_name}"] = param
-        
-        with open(filepath, 'wb') as f:
-            pickle.dump(data, f)
-        
-    def load(self, filepath):
-        # load dari filepath
-        with open(filepath, 'rb') as f:
-            model_data = pickle.load(f)
-        
-        # Verif
-        if model_data['layer_sizes'] != self.layer_sizes:
-            raise ValueError("Model architecture does not match saved model")
-        
-        # Load
-        for i, layer in enumerate(self.layers):
-            if hasattr(layer, 'params'):
-                for param_name in layer.params:
-                    param_key = f"layer{i}_{param_name}"
-                    if param_key in model_data['params']:
-                        layer.params[param_name] = model_data['params'][param_key]
+        pickle.dump(self,open(filepath,'wb'))
+    
+    @staticmethod
+    def load( filepath):
+        return pickle.load(open(filepath,'rb'))
 
     def plot_weight_distribution(self):
         # Cari semua LinearLayer
